@@ -6,19 +6,26 @@ API_KEY = ""
 api = Gophish(API_KEY, verify=False)
 
 argumentList = sys.argv[1:]
-options = "hli:o:"
-long_options = ["help", "list", "id=", "output="]
+options = "hli:o:p"
+long_options = ["help", "list", "id=", "output=", "phished"]
+only_display_phished = False
+not_phished_list = ["Email Sent", "Email Opened"]
 
 try:
     arguments, values = getopt.getopt(argumentList, options, long_options)
     
     for currentArgument, currentValue in arguments:
+        for argument in arguments:
+            if argument[0] in ("-p", "--phished"):
+                only_display_phished = True
+        
         if currentArgument in ("-h", "--help"):
             print("arguments:")
             print("    -h, --help    show help message")
             print("    -l, --list    list all campaigns")
             print("    -i, --id      details about campaign with the given id")
             print("    -o, --output  write campaign details to file (only works when used with --id option)")
+            print("    -p, --phished only displays phished (at least clicked the link) users. disabled by default")      
         
         elif currentArgument in ("-l", "--list"):
             for campaign in api.campaigns.get():
@@ -30,6 +37,8 @@ try:
             campaign = api.campaigns.get(campaignID)
             
             for result in campaign.results:
+                if only_display_phished & (result.status in not_phished_list):
+                    continue
                 print(f'id:{result.id}\t\tIsim:{result.first_name}\t\tSoyisim:{result.last_name}\t\tE-posta:{result.email}\t\tIP:{result.ip}\t\tDurum:{result.status}')
                 
         elif currentArgument in ("-o", "--output"):
@@ -54,15 +63,17 @@ try:
             worksheet.write(0, 5, "Durum", default2)
             
             for result in campaign.results:
+                if only_display_phished & (result.status in not_phished_list):
+                    continue
                 worksheet.write(row, 0, result.id, default1)
                 worksheet.write(row, 1, result.first_name, default1)
                 worksheet.write(row, 2, result.last_name, default1)
                 worksheet.write(row, 3, result.email, default1)
                 worksheet.write(row, 4, result.ip, default1)
                 if result.status == "Clicked Link":
-                    worksheet.write(row, 5, result.status, yellowBackground)
+                    worksheet.write(row, 5, "Linke Tikladi", yellowBackground)
                 elif result.status == "Submitted Data":
-                    worksheet.write(row, 5, result.status, redBackground)
+                    worksheet.write(row, 5, "Bilgilerini Girdi", redBackground)
                 else:
                     worksheet.write(row, 5, result.status, default1)
                               
